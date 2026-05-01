@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Exam Schedule"
+version = "1.0.0"
+id = "artifacts/exam-schedule"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24652
+
+[services.development]
+run = "pnpm --filter @workspace/exam-schedule run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/exam-schedule", "run", "build" ]
+publicDir = "artifacts/exam-schedule/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24652"
+BASE_PATH = "/"
