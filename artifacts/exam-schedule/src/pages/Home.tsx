@@ -146,7 +146,7 @@ export default function Home() {
         <div className="flex items-start gap-3 bg-amber-950/40 border border-amber-800/50 rounded-xl px-4 py-3 mb-4">
           <TriangleAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-300/90 leading-relaxed">
-            <span className="font-semibold text-amber-300">Important:</span> Please verify your Student ID from the original exam schedule file before searching to avoid any mistakes.
+            <span className="font-semibold text-amber-300">Important:</span> Always cross-check your exam results with the original official exam schedule file to make sure everything is correct.
           </p>
         </div>
 
