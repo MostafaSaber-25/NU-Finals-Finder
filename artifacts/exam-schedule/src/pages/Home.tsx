@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import examData from "@/examData.json";
-import { Search, BookOpen, Clock, MapPin, Calendar, GraduationCap, X, AlertCircle } from "lucide-react";
+import { Search, BookOpen, Clock, MapPin, Calendar, GraduationCap, X, AlertCircle, TriangleAlert } from "lucide-react";
 
 type ExamEntry = {
   subject: string;
@@ -48,6 +48,20 @@ function getWeekday(day: string) {
   return day.split(",")[0];
 }
 
+function parseExamDate(day: string): Date {
+  // day format: "Monday, June 01, 2026"
+  const parts = day.replace(/^[^,]+,\s*/, ""); // remove weekday → "June 01, 2026"
+  return new Date(parts);
+}
+
+function sortByDate(exams: ExamEntry[]): ExamEntry[] {
+  return [...exams].sort((a, b) => {
+    const diff = parseExamDate(a.day).getTime() - parseExamDate(b.day).getTime();
+    if (diff !== 0) return diff;
+    return a.time.localeCompare(b.time);
+  });
+}
+
 function to12Hour(time24: string): string {
   return time24.split("-").map(t => {
     const [h, m] = t.trim().split(":").map(Number);
@@ -81,7 +95,8 @@ export default function Home() {
     if (!sid) return;
     setSearched(true);
     setStudentId(sid);
-    setResults(data[sid] ?? null);
+    const found = data[sid];
+    setResults(found ? sortByDate(found) : null);
   }
 
   function handleClear() {
@@ -126,6 +141,14 @@ export default function Home() {
             </p>
           </div>
         )}
+
+        {/* Notice */}
+        <div className="flex items-start gap-3 bg-amber-950/40 border border-amber-800/50 rounded-xl px-4 py-3 mb-4">
+          <TriangleAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-300/90 leading-relaxed">
+            <span className="font-semibold text-amber-300">Important:</span> Please verify your Student ID from the original exam schedule file before searching to avoid any mistakes.
+          </p>
+        </div>
 
         {/* Search */}
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 mb-6 shadow-xl shadow-black/30">
