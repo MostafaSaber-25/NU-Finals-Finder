@@ -187,7 +187,7 @@ function ProfileCard() {
           MS
         </div>
         <h3 className="text-lg font-bold text-zinc-100">Mostafa Saber</h3>
-        <p className="text-sm text-zinc-500 mb-4">Software Developer</p>
+        <p className="text-sm text-zinc-500 mb-4">CS Student</p>
         <div className="flex gap-3 justify-center">
           <a
             href="https://www.linkedin.com/in/mostafa-mohamed-965343390/"
