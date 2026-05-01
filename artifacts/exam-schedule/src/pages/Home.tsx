@@ -48,6 +48,15 @@ function getWeekday(day: string) {
   return day.split(",")[0];
 }
 
+function to12Hour(time24: string): string {
+  return time24.split("-").map(t => {
+    const [h, m] = t.trim().split(":").map(Number);
+    const suffix = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
+  }).join(" – ");
+}
+
 function getDayColor(day: string): string {
   return DAY_COLORS[getWeekday(day)] || "bg-zinc-900/60 border-zinc-700/50 text-zinc-300";
 }
@@ -233,7 +242,7 @@ export default function Home() {
                           <div className="text-right shrink-0">
                             <div className={`flex items-center gap-1.5 justify-end ${getDayAccent(exam.day)}`}>
                               <Clock className="w-4 h-4" />
-                              <span className="text-sm font-semibold text-zinc-200">{exam.time}</span>
+                              <span className="text-sm font-semibold text-zinc-200">{to12Hour(exam.time)}</span>
                             </div>
                           </div>
                         </div>
