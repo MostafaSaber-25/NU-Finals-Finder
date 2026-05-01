@@ -12,3 +12,5 @@ A web portal for **Nile University** students to instantly find their final exam
 - **Backend:** Python (Flask)
 - **Frontend:** TypeScript, HTML, CSS
 - **Deployment:** Replit
+### 🤖 Built with AI
+This project was built using the Replit AI Agent as a pair-programmer to help bridge the gap between concept and deployment.
