@@ -3,7 +3,7 @@ import examData from "@/examData.json";
 import {
   Search, BookOpen, Clock, MapPin, Calendar,
   GraduationCap, X, AlertCircle, TriangleAlert,
-  CalendarPlus, Timer,
+  CalendarPlus, Timer, Download, ShieldAlert, Flame,
 } from "lucide-react";
 
 type ExamEntry = {
@@ -18,38 +18,48 @@ type ExamIndex = Record<string, ExamEntry[]>;
 
 const data = examData as ExamIndex;
 
+// ─── Color helpers ───────────────────────────────────────────────────────────
+
 const DAY_COLORS: Record<string, string> = {
-  "Monday":    "bg-blue-950/60 border-blue-800/50 text-blue-300",
-  "Tuesday":   "bg-violet-950/60 border-violet-800/50 text-violet-300",
-  "Wednesday": "bg-emerald-950/60 border-emerald-800/50 text-emerald-300",
-  "Thursday":  "bg-amber-950/60 border-amber-800/50 text-amber-300",
-  "Friday":    "bg-rose-950/60 border-rose-800/50 text-rose-300",
-  "Saturday":  "bg-cyan-950/60 border-cyan-800/50 text-cyan-300",
-  "Sunday":    "bg-orange-950/60 border-orange-800/50 text-orange-300",
+  Monday:    "bg-blue-950/60 border-blue-800/50 text-blue-300",
+  Tuesday:   "bg-violet-950/60 border-violet-800/50 text-violet-300",
+  Wednesday: "bg-emerald-950/60 border-emerald-800/50 text-emerald-300",
+  Thursday:  "bg-amber-950/60 border-amber-800/50 text-amber-300",
+  Friday:    "bg-rose-950/60 border-rose-800/50 text-rose-300",
+  Saturday:  "bg-cyan-950/60 border-cyan-800/50 text-cyan-300",
+  Sunday:    "bg-orange-950/60 border-orange-800/50 text-orange-300",
 };
 
 const DAY_BADGE_COLORS: Record<string, string> = {
-  "Monday":    "bg-blue-900/80 text-blue-300",
-  "Tuesday":   "bg-violet-900/80 text-violet-300",
-  "Wednesday": "bg-emerald-900/80 text-emerald-300",
-  "Thursday":  "bg-amber-900/80 text-amber-300",
-  "Friday":    "bg-rose-900/80 text-rose-300",
-  "Saturday":  "bg-cyan-900/80 text-cyan-300",
-  "Sunday":    "bg-orange-900/80 text-orange-300",
+  Monday:    "bg-blue-900/80 text-blue-300",
+  Tuesday:   "bg-violet-900/80 text-violet-300",
+  Wednesday: "bg-emerald-900/80 text-emerald-300",
+  Thursday:  "bg-amber-900/80 text-amber-300",
+  Friday:    "bg-rose-900/80 text-rose-300",
+  Saturday:  "bg-cyan-900/80 text-cyan-300",
+  Sunday:    "bg-orange-900/80 text-orange-300",
 };
 
 const DAY_ACCENT: Record<string, string> = {
-  "Monday":    "text-blue-400",
-  "Tuesday":   "text-violet-400",
-  "Wednesday": "text-emerald-400",
-  "Thursday":  "text-amber-400",
-  "Friday":    "text-rose-400",
-  "Saturday":  "text-cyan-400",
-  "Sunday":    "text-orange-400",
+  Monday:    "text-blue-400",
+  Tuesday:   "text-violet-400",
+  Wednesday: "text-emerald-400",
+  Thursday:  "text-amber-400",
+  Friday:    "text-rose-400",
+  Saturday:  "text-cyan-400",
+  Sunday:    "text-orange-400",
 };
 
-function getWeekday(day: string) {
-  return day.split(",")[0];
+function getWeekday(day: string) { return day.split(",")[0]; }
+function getDayColor(day: string) { return DAY_COLORS[getWeekday(day)] || "bg-zinc-900/60 border-zinc-700/50 text-zinc-300"; }
+function getDayBadgeColor(day: string) { return DAY_BADGE_COLORS[getWeekday(day)] || "bg-zinc-800/80 text-zinc-300"; }
+function getDayAccent(day: string) { return DAY_ACCENT[getWeekday(day)] || "text-zinc-400"; }
+
+// ─── Time helpers ─────────────────────────────────────────────────────────────
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.trim().split(":").map(Number);
+  return h * 60 + m;
 }
 
 function parseExamDate(day: string, time?: string): Date {
@@ -65,8 +75,7 @@ function parseExamDate(day: string, time?: string): Date {
 function sortByDate(exams: ExamEntry[]): ExamEntry[] {
   return [...exams].sort((a, b) => {
     const diff = parseExamDate(a.day).getTime() - parseExamDate(b.day).getTime();
-    if (diff !== 0) return diff;
-    return a.time.localeCompare(b.time);
+    return diff !== 0 ? diff : a.time.localeCompare(b.time);
   });
 }
 
@@ -74,10 +83,11 @@ function to12Hour(time24: string): string {
   return time24.split("-").map(t => {
     const [h, m] = t.trim().split(":").map(Number);
     const suffix = h >= 12 ? "PM" : "AM";
-    const hour = h % 12 || 12;
-    return `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
+    return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${suffix}`;
   }).join(" – ");
 }
+
+// ─── Google Calendar link ─────────────────────────────────────────────────────
 
 function toGCalDate(day: string, time: string): string {
   const datePart = day.replace(/^[^,]+,\s*/, "");
@@ -103,48 +113,160 @@ function buildGCalUrl(exam: ExamEntry): string {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-function getDayColor(day: string): string {
-  return DAY_COLORS[getWeekday(day)] || "bg-zinc-900/60 border-zinc-700/50 text-zinc-300";
+// ─── ICS generation (Egypt GMT+2) ────────────────────────────────────────────
+
+function toICSDateTime(day: string, timeStr: string): string {
+  const datePart = day.replace(/^[^,]+,\s*/, "");
+  const d = new Date(datePart);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const date = String(d.getDate()).padStart(2, "0");
+  const [h, m] = timeStr.trim().split(":").map(Number);
+  return `${year}${month}${date}T${String(h).padStart(2, "0")}${String(m).padStart(2, "0")}00`;
 }
 
-function getDayBadgeColor(day: string): string {
-  return DAY_BADGE_COLORS[getWeekday(day)] || "bg-zinc-800/80 text-zinc-300";
+function generateICS(exams: ExamEntry[], studentId: string): string {
+  const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2)}@examschedule`;
+
+  const events = exams.map(exam => {
+    const [startTime, endTime] = exam.time.split("-");
+    const dtStart = toICSDateTime(exam.day, startTime);
+    const dtEnd   = toICSDateTime(exam.day, endTime);
+    return [
+      "BEGIN:VEVENT",
+      `UID:${uid()}`,
+      `DTSTART;TZID=Africa/Cairo:${dtStart}`,
+      `DTEND;TZID=Africa/Cairo:${dtEnd}`,
+      `SUMMARY:${exam.subject} Final Exam`,
+      `LOCATION:Room ${exam.room}\\, Nile University`,
+      `DESCRIPTION:${exam.program} — ${exam.subject} Final Examination`,
+      "END:VEVENT",
+    ].join("\r\n");
+  });
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Exam Schedule//Nile University//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-TIMEZONE:Africa/Cairo",
+    ...events,
+    "END:VCALENDAR",
+  ].join("\r\n");
 }
 
-function getDayAccent(day: string): string {
-  return DAY_ACCENT[getWeekday(day)] || "text-zinc-400";
+function downloadICS(exams: ExamEntry[], studentId: string) {
+  const content = generateICS(exams, studentId);
+  const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `exam-schedule-${studentId}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
+
+// ─── Conflict / heavy-day analysis ───────────────────────────────────────────
+
+type Conflict = { a: ExamEntry; b: ExamEntry };
+type HeavyDay = { day: string; exams: ExamEntry[] };
+
+function analyzeSchedule(exams: ExamEntry[]): { conflicts: Conflict[]; heavyDays: HeavyDay[] } {
+  const conflicts: Conflict[] = [];
+  const byDay: Record<string, ExamEntry[]> = {};
+
+  for (const exam of exams) {
+    if (!byDay[exam.day]) byDay[exam.day] = [];
+    byDay[exam.day].push(exam);
+  }
+
+  for (const dayExams of Object.values(byDay)) {
+    for (let i = 0; i < dayExams.length; i++) {
+      for (let j = i + 1; j < dayExams.length; j++) {
+        const a = dayExams[i], b = dayExams[j];
+        const [aStart, aEnd] = a.time.split("-").map(timeToMinutes);
+        const [bStart, bEnd] = b.time.split("-").map(timeToMinutes);
+        if (aStart < bEnd && bStart < aEnd) {
+          conflicts.push({ a, b });
+        }
+      }
+    }
+  }
+
+  const heavyDays: HeavyDay[] = Object.entries(byDay)
+    .filter(([, e]) => e.length > 1)
+    .map(([day, e]) => ({ day, exams: e }));
+
+  return { conflicts, heavyDays };
+}
+
+// ─── Schedule Insights component ─────────────────────────────────────────────
+
+function ScheduleInsights({ exams }: { exams: ExamEntry[] }) {
+  const { conflicts, heavyDays } = analyzeSchedule(exams);
+  if (conflicts.length === 0 && heavyDays.length === 0) return null;
+
+  return (
+    <div className="space-y-3 mb-5">
+      {conflicts.map((c, i) => (
+        <div key={i} className="flex items-start gap-3 bg-red-950/40 border border-red-800/60 rounded-xl px-4 py-3">
+          <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-300 mb-0.5">Direct Conflict Detected</p>
+            <p className="text-xs text-red-400/80">
+              <span className="font-mono">{c.a.subject}</span> ({to12Hour(c.a.time)}) and{" "}
+              <span className="font-mono">{c.b.subject}</span> ({to12Hour(c.b.time)}) overlap on {c.a.day}.
+            </p>
+          </div>
+        </div>
+      ))}
+
+      {heavyDays.map((hd, i) => (
+        <div key={i} className="flex items-start gap-3 bg-orange-950/40 border border-orange-800/60 rounded-xl px-4 py-3">
+          <Flame className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-orange-300 mb-0.5">
+              Heavy Day — {hd.day}
+            </p>
+            <p className="text-xs text-orange-400/80">
+              You have <span className="font-bold">{hd.exams.length} exams</span> on this date:{" "}
+              {hd.exams.map(e => e.subject).join(", ")}.
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Countdown banner ─────────────────────────────────────────────────────────
 
 function useCountdown(targetDate: Date | null) {
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
-
   useEffect(() => {
     if (!targetDate) return;
     function update() {
       const diff = targetDate!.getTime() - Date.now();
-      if (diff <= 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-      const days = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const minutes = Math.floor((diff % 3600000) / 60000);
-      const seconds = Math.floor((diff % 60000) / 1000);
-      setTimeLeft({ days, hours, minutes, seconds });
+      if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 }); return; }
+      setTimeLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+      });
     }
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [targetDate]);
-
   return timeLeft;
 }
 
 function CountdownBanner({ firstExam }: { firstExam: ExamEntry }) {
-  const target = parseExamDate(firstExam.day, firstExam.time);
+  const target   = parseExamDate(firstExam.day, firstExam.time);
   const timeLeft = useCountdown(target);
   if (!timeLeft) return null;
-
   const isPast = target.getTime() <= Date.now();
 
   return (
@@ -161,8 +283,8 @@ function CountdownBanner({ firstExam }: { firstExam: ExamEntry }) {
       ) : (
         <div className="grid grid-cols-4 gap-2">
           {[
-            { label: "Days", value: timeLeft.days },
-            { label: "Hours", value: timeLeft.hours },
+            { label: "Days",    value: timeLeft.days },
+            { label: "Hours",   value: timeLeft.hours },
             { label: "Minutes", value: timeLeft.minutes },
             { label: "Seconds", value: timeLeft.seconds },
           ].map(({ label, value }) => (
@@ -179,6 +301,8 @@ function CountdownBanner({ firstExam }: { firstExam: ExamEntry }) {
   );
 }
 
+// ─── Profile card ─────────────────────────────────────────────────────────────
+
 function ProfileCard() {
   return (
     <div className="mt-12 mb-4 flex justify-center">
@@ -191,8 +315,7 @@ function ProfileCard() {
         <div className="flex gap-3 justify-center">
           <a
             href="https://www.linkedin.com/in/mostafa-mohamed-965343390/"
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0a66c2] hover:bg-[#0958a8] text-white text-xs font-medium transition-colors shadow-md"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -202,8 +325,7 @@ function ProfileCard() {
           </a>
           <a
             href="https://github.com/MostafaSaber-25"
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium transition-colors shadow-md"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -217,10 +339,12 @@ function ProfileCard() {
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function Home() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery]       = useState("");
   const [searched, setSearched] = useState(false);
-  const [results, setResults] = useState<ExamEntry[] | null>(null);
+  const [results, setResults]   = useState<ExamEntry[] | null>(null);
   const [studentId, setStudentId] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -234,19 +358,27 @@ export default function Home() {
   }
 
   function handleClear() {
-    setQuery("");
-    setSearched(false);
-    setResults(null);
-    setStudentId("");
+    setQuery(""); setSearched(false); setResults(null); setStudentId("");
     inputRef.current?.focus();
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") handleSearch();
-  }
-
+  const firstExam  = results?.[0] ?? null;
   const totalExams = results?.length ?? 0;
-  const firstExam = results?.[0] ?? null;
+
+  // heavy-day lookup for card highlight
+  const heavyDaySet = results
+    ? new Set(
+        Object.entries(
+          results.reduce<Record<string, number>>((acc, e) => { acc[e.day] = (acc[e.day] || 0) + 1; return acc; }, {})
+        ).filter(([, n]) => n > 1).map(([d]) => d)
+      )
+    : new Set<string>();
+
+  // conflict lookup for card highlight
+  const conflictSubjectPairs = results
+    ? analyzeSchedule(results).conflicts.flatMap(c => [c.a.subject + c.a.day, c.b.subject + c.b.day])
+    : [];
+  const conflictSet = new Set(conflictSubjectPairs);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -295,15 +427,12 @@ export default function Home() {
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
                 placeholder="Enter your Student ID (e.g. 231001234)"
                 className="w-full pl-10 pr-10 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-zinc-100 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
               />
               {query && (
-                <button
-                  onClick={handleClear}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
+                <button onClick={handleClear} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -328,24 +457,22 @@ export default function Home() {
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-200 mb-1">Student ID Not Found</h3>
                 <p className="text-zinc-500 text-sm mb-4">
-                  No exams found for ID{" "}
-                  <span className="font-mono font-semibold text-zinc-300">{studentId}</span>.
-                  Please double-check your student ID and try again.
+                  No exams found for ID <span className="font-mono font-semibold text-zinc-300">{studentId}</span>.
                 </p>
-                <button
-                  onClick={handleClear}
-                  className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
-                >
+                <button onClick={handleClear} className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
                   Try another ID
                 </button>
               </div>
             ) : (
               <>
-                {/* Countdown Banner */}
+                {/* Countdown */}
                 {firstExam && <CountdownBanner firstExam={firstExam} />}
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-3 gap-3 mb-5">
+                {/* Schedule Insights */}
+                <ScheduleInsights exams={results} />
+
+                {/* Summary + Sync All */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 text-center">
                     <div className="text-2xl font-bold text-blue-400 mb-0.5">{totalExams}</div>
                     <div className="text-xs text-zinc-500 font-medium">Total Exams</div>
@@ -364,87 +491,101 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Sync All button */}
+                <button
+                  onClick={() => downloadICS(results, studentId)}
+                  className="flex items-center justify-center gap-2 w-full py-3 mb-5 rounded-xl bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-800/60 hover:border-emerald-700 text-emerald-300 hover:text-emerald-200 text-sm font-semibold transition-all group"
+                >
+                  <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  Sync All Exams to Calendar (.ics)
+                </button>
+
                 {/* Student ID badge */}
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-sm text-zinc-500">Results for</span>
                   <span className="font-mono text-sm font-semibold bg-blue-950/60 text-blue-300 px-2.5 py-0.5 rounded-md border border-blue-900/50">
                     {studentId}
                   </span>
-                  <button
-                    onClick={handleClear}
-                    className="ml-auto text-xs text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1"
-                  >
+                  <button onClick={handleClear} className="ml-auto text-xs text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1">
                     <X className="w-3 h-3" /> Clear
                   </button>
                 </div>
 
                 {/* Exam Cards */}
                 <div className="space-y-3">
-                  {results.map((exam, i) => (
-                    <div
-                      key={i}
-                      className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden hover:border-zinc-700 transition-colors"
-                    >
-                      <div className={`px-5 py-2.5 border-b flex items-center justify-between ${getDayColor(exam.day)}`}>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 opacity-70" />
-                          <span className="text-sm font-semibold">{exam.day}</span>
-                        </div>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${getDayBadgeColor(exam.day)}`}>
-                          Exam {i + 1}
-                        </span>
-                      </div>
-                      <div className="px-5 py-4">
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div>
-                            <h3 className="text-lg font-bold text-zinc-100">{exam.subject}</h3>
-                            <span className="text-xs text-zinc-500">{exam.program}</span>
+                  {results.map((exam, i) => {
+                    const isHeavy    = heavyDaySet.has(exam.day);
+                    const isConflict = conflictSet.has(exam.subject + exam.day);
+                    return (
+                      <div
+                        key={i}
+                        className={`rounded-2xl border overflow-hidden transition-colors ${
+                          isConflict
+                            ? "bg-red-950/20 border-red-800/60 hover:border-red-700"
+                            : isHeavy
+                            ? "bg-orange-950/20 border-orange-800/50 hover:border-orange-700"
+                            : "bg-zinc-900 border-zinc-800 hover:border-zinc-700"
+                        }`}
+                      >
+                        <div className={`px-5 py-2.5 border-b flex items-center justify-between ${getDayColor(exam.day)}`}>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 opacity-70" />
+                            <span className="text-sm font-semibold">{exam.day}</span>
+                            {isConflict && <span className="text-xs bg-red-900/60 text-red-300 px-1.5 py-0.5 rounded border border-red-800/50">Conflict</span>}
+                            {!isConflict && isHeavy && <span className="text-xs bg-orange-900/60 text-orange-300 px-1.5 py-0.5 rounded border border-orange-800/50">Heavy Day</span>}
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className={`flex items-center gap-1.5 justify-end ${getDayAccent(exam.day)}`}>
-                              <Clock className="w-4 h-4" />
-                              <span className="text-sm font-semibold text-zinc-200">{to12Hour(exam.time)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 bg-zinc-800/60 rounded-xl px-3.5 py-2.5 border border-zinc-700/50 mb-3">
-                          <MapPin className={`w-4 h-4 shrink-0 ${getDayAccent(exam.day)}`} />
-                          <span className="text-sm text-zinc-400">
-                            Room{" "}
-                            <span className="font-semibold text-zinc-200">{exam.room}</span>
-                            <span className="text-zinc-600 mx-1">·</span>
-                            <span className="text-zinc-500">Nile University</span>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${getDayBadgeColor(exam.day)}`}>
+                            Exam {i + 1}
                           </span>
                         </div>
-                        <a
-                          href={buildGCalUrl(exam)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-all group"
-                        >
-                          <CalendarPlus className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300 transition-colors" />
-                          Add to Google Calendar
-                        </a>
+                        <div className="px-5 py-4">
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                              <h3 className="text-lg font-bold text-zinc-100">{exam.subject}</h3>
+                              <span className="text-xs text-zinc-500">{exam.program}</span>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className={`flex items-center gap-1.5 justify-end ${getDayAccent(exam.day)}`}>
+                                <Clock className="w-4 h-4" />
+                                <span className="text-sm font-semibold text-zinc-200">{to12Hour(exam.time)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 bg-zinc-800/60 rounded-xl px-3.5 py-2.5 border border-zinc-700/50 mb-3">
+                            <MapPin className={`w-4 h-4 shrink-0 ${getDayAccent(exam.day)}`} />
+                            <span className="text-sm text-zinc-400">
+                              Room <span className="font-semibold text-zinc-200">{exam.room}</span>
+                              <span className="text-zinc-600 mx-1">·</span>
+                              <span className="text-zinc-500">Nile University</span>
+                            </span>
+                          </div>
+                          <a
+                            href={buildGCalUrl(exam)}
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-all group"
+                          >
+                            <CalendarPlus className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300 transition-colors" />
+                            Add to Google Calendar
+                          </a>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
           </div>
         )}
 
-        {/* Empty state hint */}
         {!searched && (
           <div className="text-center mt-8">
             <p className="text-xs text-zinc-700">
               Spring 2026 · {Object.keys(data).length.toLocaleString()} students ·{" "}
-              {Object.values(data).reduce((sum, exams) => sum + exams.length, 0).toLocaleString()} exam records
+              {Object.values(data).reduce((sum, e) => sum + e.length, 0).toLocaleString()} exam records
             </p>
           </div>
         )}
 
-        {/* Developer Profile Card */}
         <ProfileCard />
       </div>
     </div>
