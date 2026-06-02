@@ -242,61 +242,74 @@ function ScheduleInsights({ exams }: { exams: ExamEntry[] }) {
 
 // ─── Countdown banner ─────────────────────────────────────────────────────────
 
-function useCountdown(targetDate: Date | null) {
-  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
+type Tick = { days: number; hours: number; minutes: number; seconds: number };
+
+function getNextExam(exams: ExamEntry[]): ExamEntry | null {
+  const now = Date.now();
+  return exams.find(e => parseExamDate(e.day, e.time).getTime() > now) ?? null;
+}
+
+function CountdownBanner({ exams }: { exams: ExamEntry[] }) {
+  const [timeLeft, setTimeLeft] = useState<Tick | null>(null);
+  const [target, setTarget]     = useState<ExamEntry | null>(() => getNextExam(exams));
+  const allDone = !target;
+
   useEffect(() => {
-    if (!targetDate) return;
-    function update() {
-      const diff = targetDate!.getTime() - Date.now();
+    function tick() {
+      const next = getNextExam(exams);
+      setTarget(next);
+
+      if (!next) { setTimeLeft(null); return; }
+
+      const diff = parseExamDate(next.day, next.time).getTime() - Date.now();
       if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 }); return; }
       setTimeLeft({
-        days: Math.floor(diff / 86400000),
-        hours: Math.floor((diff % 86400000) / 3600000),
+        days:    Math.floor(diff / 86400000),
+        hours:   Math.floor((diff % 86400000) / 3600000),
         minutes: Math.floor((diff % 3600000) / 60000),
         seconds: Math.floor((diff % 60000) / 1000),
       });
     }
-    update();
-    const id = setInterval(update, 1000);
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [targetDate]);
-  return timeLeft;
-}
-
-function CountdownBanner({ firstExam }: { firstExam: ExamEntry }) {
-  const target   = parseExamDate(firstExam.day, firstExam.time);
-  const timeLeft = useCountdown(target);
-  if (!timeLeft) return null;
-  const isPast = target.getTime() <= Date.now();
+  }, [exams]);
 
   return (
     <div className="bg-gradient-to-r from-blue-950/80 to-violet-950/80 border border-blue-800/50 rounded-2xl p-5 mb-5">
       <div className="flex items-center gap-2 mb-3">
         <Timer className="w-4 h-4 text-blue-400" />
         <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider">
-          {isPast ? "First Exam Has Started" : "Time Until First Exam"}
+          {allDone ? "All Exams Completed" : "Time Until Next Exam"}
         </span>
-        <span className="ml-auto text-xs text-zinc-500 font-mono">{firstExam.subject}</span>
+        {target && <span className="ml-auto text-xs text-zinc-500 font-mono">{target.subject}</span>}
       </div>
-      {isPast ? (
-        <p className="text-zinc-300 text-sm">Your first exam has already begun. Good luck!</p>
-      ) : (
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: "Days",    value: timeLeft.days },
-            { label: "Hours",   value: timeLeft.hours },
-            { label: "Minutes", value: timeLeft.minutes },
-            { label: "Seconds", value: timeLeft.seconds },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-zinc-900/80 rounded-xl py-3 text-center border border-zinc-700/40">
-              <div className="text-2xl font-bold text-zinc-100 font-mono tabular-nums">
-                {String(value).padStart(2, "0")}
+      {allDone ? (
+        <p className="text-zinc-300 text-sm">You have completed all your exams. Congratulations!</p>
+      ) : timeLeft ? (
+        <>
+          <div className="grid grid-cols-4 gap-2 mb-2">
+            {([
+              { label: "Days",    value: timeLeft.days },
+              { label: "Hours",   value: timeLeft.hours },
+              { label: "Minutes", value: timeLeft.minutes },
+              { label: "Seconds", value: timeLeft.seconds },
+            ] as const).map(({ label, value }) => (
+              <div key={label} className="bg-zinc-900/80 rounded-xl py-3 text-center border border-zinc-700/40">
+                <div className="text-2xl font-bold text-zinc-100 font-mono tabular-nums">
+                  {String(value).padStart(2, "0")}
+                </div>
+                <div className="text-xs text-zinc-500 mt-0.5">{label}</div>
               </div>
-              <div className="text-xs text-zinc-500 mt-0.5">{label}</div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+          {target && (
+            <p className="text-xs text-zinc-600 text-center">
+              {target.day} · {to12Hour(target.time)} · Room {target.room}
+            </p>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -362,7 +375,6 @@ export default function Home() {
     inputRef.current?.focus();
   }
 
-  const firstExam  = results?.[0] ?? null;
   const totalExams = results?.length ?? 0;
 
   // heavy-day lookup for card highlight
@@ -466,7 +478,7 @@ export default function Home() {
             ) : (
               <>
                 {/* Countdown */}
-                {firstExam && <CountdownBanner firstExam={firstExam} />}
+                <CountdownBanner exams={results} />
 
                 {/* Schedule Insights */}
                 <ScheduleInsights exams={results} />
