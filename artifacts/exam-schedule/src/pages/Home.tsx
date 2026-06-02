@@ -542,8 +542,8 @@ export default function Home() {
         {/* Hero */}
         {!searched && (
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-lg shadow-blue-900/50 mb-5">
-              <BookOpen className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center mb-5">
+              <img src="/nu-logo.png" alt="Nile University" className="h-20 w-auto object-contain drop-shadow-lg" />
             </div>
             <h2 className="text-3xl font-bold text-zinc-100 mb-2">Find Your Exam Schedule</h2>
             <p className="text-zinc-400 text-base max-w-md mx-auto">
