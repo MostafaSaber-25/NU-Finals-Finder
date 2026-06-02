@@ -559,11 +559,11 @@ export default function Home() {
                           <div className="flex items-center gap-2 shrink-0">
                             {isExamDone(exam) ? (
                               <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-900/40 text-emerald-400 border border-emerald-800/50">
-                                <CheckCircle className="w-3 h-3" /> Done
+                                <CheckCircle className="w-3 h-3" /> Cooked
                               </span>
                             ) : (
                               <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
-                                <Loader className="w-3 h-3 animate-spin" /> Upcoming
+                                <Loader className="w-3 h-3 animate-spin" /> Cooking
                               </span>
                             )}
                             <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${getDayBadgeColor(exam.day)}`}>
