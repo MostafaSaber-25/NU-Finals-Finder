@@ -324,41 +324,6 @@ function CountdownBanner({ exams }: { exams: ExamEntry[] }) {
   );
 }
 
-// ─── Disclaimer Modal ─────────────────────────────────────────────────────────
-
-function DisclaimerModal() {
-  const [open, setOpen] = useState(() => !sessionStorage.getItem("disclaimer-seen"));
-
-  function dismiss() {
-    sessionStorage.setItem("disclaimer-seen", "1");
-    setOpen(false);
-  }
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.85)" }}>
-      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl max-w-md w-full p-7">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-800/50 flex items-center justify-center shrink-0">
-            <ShieldAlert className="w-5 h-5 text-amber-400" />
-          </div>
-          <h2 className="text-base font-bold text-zinc-100">Important Notice</h2>
-        </div>
-        <p className="text-sm text-zinc-400 leading-relaxed mb-6">
-          This system is an independent student initiative and is not endorsed by the college or university administration. The college logo is used strictly for identification purposes only. The creator of this site bears no responsibility for user actions or any consequences resulting from the use of this site.
-        </p>
-        <button
-          onClick={dismiss}
-          className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
-        >
-          I Understand
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Cooked Celebration ───────────────────────────────────────────────────────
 
 const CONFETTI_COLORS = [
@@ -555,8 +520,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Disclaimer */}
-      <DisclaimerModal />
       {/* Cooked celebration overlay */}
       {cookedSubject && (
         <CookedCelebration
@@ -592,9 +555,10 @@ export default function Home() {
         {/* Notice */}
         <div className="flex items-start gap-3 bg-amber-950/40 border border-amber-800/50 rounded-xl px-4 py-3 mb-4">
           <TriangleAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-300/90 leading-relaxed">
-            <span className="font-semibold text-amber-300">Important:</span> Always cross-check your exam results with the original official exam schedule file to make sure everything is correct.
-          </p>
+          <div className="text-sm text-amber-300/90 leading-relaxed space-y-1.5">
+            <p><span className="font-semibold text-amber-300">Important:</span> Always cross-check your exam results with the original official exam schedule file to make sure everything is correct.</p>
+            <p><span className="font-semibold text-amber-300">Notice:</span> This system is an independent student initiative and is not endorsed by the college or university administration. The college logo is used strictly for identification purposes only. The creator of this site bears no responsibility for user actions or any consequences resulting from the use of this site.</p>
+          </div>
         </div>
 
         {/* Search */}
