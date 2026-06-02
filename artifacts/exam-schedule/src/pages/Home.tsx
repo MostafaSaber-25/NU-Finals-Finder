@@ -290,7 +290,7 @@ function CountdownBanner({ exams }: { exams: ExamEntry[] }) {
       <div className="flex items-center gap-2 mb-3">
         <Timer className="w-4 h-4 text-blue-400" />
         <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider">
-          {allDone ? "All Exams Completed" : "Time Until Next Exam"}
+          {allDone ? "All Exams Completed" : "You will be cooking at this time"}
         </span>
         {target && <span className="ml-auto text-xs text-zinc-500 font-mono">{target.subject}</span>}
       </div>
