@@ -55,6 +55,16 @@ function getDayColor(day: string) { return DAY_COLORS[getWeekday(day)] || "bg-zi
 function getDayBadgeColor(day: string) { return DAY_BADGE_COLORS[getWeekday(day)] || "bg-zinc-800/80 text-zinc-300"; }
 function getDayAccent(day: string) { return DAY_ACCENT[getWeekday(day)] || "text-zinc-400"; }
 
+function isExamDone(exam: ExamEntry): boolean {
+  const endTime = exam.time.split("-")[1]?.trim();
+  if (!endTime) return false;
+  const datePart = exam.day.replace(/^[^,]+,\s*/, "");
+  const d = new Date(datePart);
+  const [h, m] = endTime.split(":").map(Number);
+  d.setHours(h, m, 0, 0);
+  return d.getTime() < Date.now();
+}
+
 // ─── Time helpers ─────────────────────────────────────────────────────────────
 
 function timeToMinutes(t: string): number {
@@ -540,15 +550,26 @@ export default function Home() {
                         }`}
                       >
                         <div className={`px-5 py-2.5 border-b flex items-center justify-between ${getDayColor(exam.day)}`}>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Calendar className="w-4 h-4 opacity-70" />
                             <span className="text-sm font-semibold">{exam.day}</span>
                             {isConflict && <span className="text-xs bg-red-900/60 text-red-300 px-1.5 py-0.5 rounded border border-red-800/50">Conflict</span>}
                             {!isConflict && isHeavy && <span className="text-xs bg-orange-900/60 text-orange-300 px-1.5 py-0.5 rounded border border-orange-800/50">Heavy Day</span>}
                           </div>
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${getDayBadgeColor(exam.day)}`}>
-                            Exam {i + 1}
-                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isExamDone(exam) ? (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                                🍳 Cooked
+                              </span>
+                            ) : (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-300 border border-emerald-800/50">
+                                🔥 Cooking
+                              </span>
+                            )}
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${getDayBadgeColor(exam.day)}`}>
+                              Exam {i + 1}
+                            </span>
+                          </div>
                         </div>
                         <div className="px-5 py-4">
                           <div className="flex items-start justify-between gap-4 mb-3">
