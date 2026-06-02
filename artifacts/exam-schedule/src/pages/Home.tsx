@@ -3,7 +3,7 @@ import examData from "@/examData.json";
 import {
   Search, BookOpen, Clock, MapPin, Calendar,
   GraduationCap, X, AlertCircle, TriangleAlert,
-  CalendarPlus, Timer, Download, ShieldAlert, Flame,
+  CalendarPlus, Timer, Download, ShieldAlert, CheckCircle, Loader,
 } from "lucide-react";
 
 type ExamEntry = {
@@ -558,12 +558,12 @@ export default function Home() {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {isExamDone(exam) ? (
-                              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
-                                🍳 Cooked
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-900/40 text-emerald-400 border border-emerald-800/50">
+                                <CheckCircle className="w-3 h-3" /> Done
                               </span>
                             ) : (
-                              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-300 border border-emerald-800/50">
-                                🔥 Cooking
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                                <Loader className="w-3 h-3 animate-spin" /> Upcoming
                               </span>
                             )}
                             <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${getDayBadgeColor(exam.day)}`}>
