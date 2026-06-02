@@ -407,7 +407,9 @@ function CookedCelebration({ subject, onDismiss }: { subject: string; onDismiss:
       {/* Main card */}
       <div className={`relative text-center px-10 py-10 rounded-3xl border border-zinc-700/60 shadow-2xl max-w-sm w-full mx-4 ${exiting ? "cooked-out" : "cooked-pop"}`}
         style={{ background: "linear-gradient(135deg,#18181b 0%,#09090b 100%)" }}>
-        <div className="text-7xl mb-4 select-none">🍳</div>
+        <div className="mb-4 flex items-center justify-center">
+          <CheckCircle className="w-24 h-24 text-emerald-400 drop-shadow-[0_0_24px_rgba(52,211,153,0.6)]" />
+        </div>
         <h2 className="text-xl font-bold text-zinc-100 mb-1 leading-snug">
           {subject}
         </h2>
