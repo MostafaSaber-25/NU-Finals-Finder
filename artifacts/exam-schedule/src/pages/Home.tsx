@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import examData from "@/examData.json";
 import {
   Search, BookOpen, Clock, MapPin, Calendar,
   GraduationCap, X, AlertCircle, TriangleAlert,
-  CalendarPlus, Timer, Download, ShieldAlert, CheckCircle, Loader,
+  CalendarPlus, Timer, Download, ShieldAlert, CheckCircle, Loader, Zap,
 } from "lucide-react";
 
 type ExamEntry = {
@@ -234,7 +234,7 @@ function ScheduleInsights({ exams }: { exams: ExamEntry[] }) {
 
       {heavyDays.map((hd, i) => (
         <div key={i} className="flex items-start gap-3 bg-orange-950/40 border border-orange-800/60 rounded-xl px-4 py-3">
-          <Flame className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+          <Zap className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-orange-300 mb-0.5">
               Heavy Day — {hd.day}
@@ -324,6 +324,102 @@ function CountdownBanner({ exams }: { exams: ExamEntry[] }) {
   );
 }
 
+// ─── Cooked Celebration ───────────────────────────────────────────────────────
+
+const CONFETTI_COLORS = [
+  "#f59e0b","#10b981","#3b82f6","#a78bfa","#f43f5e",
+  "#06b6d4","#ec4899","#84cc16","#fb923c","#e879f9",
+];
+
+function CookedCelebration({ subject, onDismiss }: { subject: string; onDismiss: () => void }) {
+  const [exiting, setExiting] = useState(false);
+
+  const dismiss = useCallback(() => {
+    setExiting(true);
+    setTimeout(onDismiss, 350);
+  }, [onDismiss]);
+
+  useEffect(() => {
+    const t = setTimeout(dismiss, 4500);
+    return () => clearTimeout(t);
+  }, [dismiss]);
+
+  const particles = useMemo(() =>
+    Array.from({ length: 40 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      size: 6 + Math.random() * 10,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      duration: 2.2 + Math.random() * 2,
+      delay: Math.random() * 1.2,
+      shape: i % 3 === 0 ? "rounded-full" : i % 3 === 1 ? "rounded-sm" : "rotate-45",
+    })), []);
+
+  const stars = useMemo(() =>
+    Array.from({ length: 8 }, (_, i) => ({
+      id: i,
+      top: 15 + Math.random() * 70,
+      left: 5 + Math.random() * 90,
+      size: 20 + Math.random() * 28,
+      delay: Math.random() * 0.8,
+      duration: 1 + Math.random() * 0.8,
+    })), []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer overflow-hidden"
+      style={{ background: "rgba(0,0,0,0.82)" }}
+      onClick={dismiss}
+    >
+      {/* Confetti */}
+      {particles.map(p => (
+        <div
+          key={p.id}
+          className={`absolute top-0 confetti-fall ${p.shape}`}
+          style={{
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        />
+      ))}
+
+      {/* Star bursts */}
+      {stars.map(s => (
+        <div
+          key={s.id}
+          className="absolute star-burst text-yellow-300 pointer-events-none select-none"
+          style={{
+            top: `${s.top}%`,
+            left: `${s.left}%`,
+            fontSize: s.size,
+            animationDuration: `${s.duration}s`,
+            animationDelay: `${s.delay}s`,
+          }}
+        >
+          ✦
+        </div>
+      ))}
+
+      {/* Main card */}
+      <div className={`relative text-center px-10 py-10 rounded-3xl border border-zinc-700/60 shadow-2xl max-w-sm w-full mx-4 ${exiting ? "cooked-out" : "cooked-pop"}`}
+        style={{ background: "linear-gradient(135deg,#18181b 0%,#09090b 100%)" }}>
+        <div className="text-7xl mb-4 select-none">🍳</div>
+        <h2 className="text-xl font-bold text-zinc-100 mb-1 leading-snug">
+          {subject}
+        </h2>
+        <p className="text-3xl font-extrabold bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 bg-clip-text text-transparent mb-5">
+          Cooked You!
+        </p>
+        <p className="text-xs text-zinc-600">Tap anywhere to dismiss</p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Profile card ─────────────────────────────────────────────────────────────
 
 function ProfileCard() {
@@ -369,7 +465,25 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
   const [results, setResults]   = useState<ExamEntry[] | null>(null);
   const [studentId, setStudentId] = useState("");
+  const [cookedSubject, setCookedSubject] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const prevDoneRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!results) { prevDoneRef.current = new Set(); return; }
+    const id = setInterval(() => {
+      const nowDone = new Set(results.filter(isExamDone).map(e => e.subject + e.day + e.time));
+      const prev = prevDoneRef.current;
+      for (const key of nowDone) {
+        if (!prev.has(key)) {
+          const exam = results.find(e => e.subject + e.day + e.time === key);
+          if (exam) { setCookedSubject(exam.subject); break; }
+        }
+      }
+      prevDoneRef.current = nowDone;
+    }, 1000);
+    return () => clearInterval(id);
+  }, [results]);
 
   function handleSearch(id?: string) {
     const sid = (id ?? query).trim();
@@ -404,6 +518,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Cooked celebration overlay */}
+      {cookedSubject && (
+        <CookedCelebration
+          subject={cookedSubject}
+          onDismiss={() => setCookedSubject(null)}
+        />
+      )}
       {/* Header */}
       <div className="bg-zinc-900/90 backdrop-blur-sm border-b border-zinc-800 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
