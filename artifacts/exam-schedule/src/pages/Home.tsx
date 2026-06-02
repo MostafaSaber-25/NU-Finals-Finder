@@ -529,13 +529,11 @@ export default function Home() {
       )}
       {/* Header */}
       <div className="bg-zinc-900/90 backdrop-blur-sm border-b border-zinc-800 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-900/40">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+          <img src="/nu-logo.png" alt="Nile University" className="h-10 w-auto object-contain" />
           <div>
             <h1 className="text-base font-semibold text-zinc-100 leading-tight">Exam Schedule</h1>
-            <p className="text-xs text-zinc-500">Spring 2026 Final Exams</p>
+            <p className="text-xs text-zinc-500">Nile University · Spring 2026 Final Exams</p>
           </div>
         </div>
       </div>
