@@ -477,6 +477,29 @@ export default function Home() {
       setCookedQueue([]);
       return;
     }
+
+    // Find the most recently finished exam by end time
+    const doneExams = results.filter(isExamDone);
+    const mostRecent = doneExams.reduce<ExamEntry | null>((latest, exam) => {
+      const endTime = exam.time.split("-")[1]?.trim() ?? "00:00";
+      const datePart = exam.day.replace(/^[^,]+,\s*/, "");
+      const d = new Date(datePart);
+      const [h, m] = endTime.split(":").map(Number);
+      d.setHours(h, m, 0, 0);
+      if (!latest) return exam;
+      const latestEnd = latest.time.split("-")[1]?.trim() ?? "00:00";
+      const latestDate = new Date(latest.day.replace(/^[^,]+,\s*/, ""));
+      const [lh, lm] = latestEnd.split(":").map(Number);
+      latestDate.setHours(lh, lm, 0, 0);
+      return d.getTime() > latestDate.getTime() ? exam : latest;
+    }, null);
+
+    // Show only the most recently finished exam on load
+    if (mostRecent) setCookedQueue([mostRecent.subject]);
+
+    // Seed prevDoneRef so the interval only fires for NEW completions
+    prevDoneRef.current = new Set(results.filter(isExamDone).map(e => e.subject + e.day + e.time));
+
     const id = setInterval(() => {
       const nowDone = new Set(results.filter(isExamDone).map(e => e.subject + e.day + e.time));
       const prev = prevDoneRef.current;
@@ -487,9 +510,7 @@ export default function Home() {
           if (exam) newlyDone.push(exam.subject);
         }
       }
-      if (newlyDone.length > 0) {
-        setCookedQueue(q => [...q, ...newlyDone]);
-      }
+      if (newlyDone.length > 0) setCookedQueue(q => [...q, ...newlyDone]);
       prevDoneRef.current = nowDone;
     }, 1000);
     return () => clearInterval(id);
