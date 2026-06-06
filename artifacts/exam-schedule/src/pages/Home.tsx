@@ -467,25 +467,32 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
   const [results, setResults]   = useState<ExamEntry[] | null>(null);
   const [studentId, setStudentId] = useState("");
-  const [cookedSubject, setCookedSubject] = useState<string | null>(null);
+  const [cookedQueue, setCookedQueue] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevDoneRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!results) { prevDoneRef.current = new Set(); return; }
+    if (!results) { prevDoneRef.current = new Set(); setCookedQueue([]); return; }
     const id = setInterval(() => {
       const nowDone = new Set(results.filter(isExamDone).map(e => e.subject + e.day + e.time));
       const prev = prevDoneRef.current;
+      const newlyDone: string[] = [];
       for (const key of nowDone) {
         if (!prev.has(key)) {
           const exam = results.find(e => e.subject + e.day + e.time === key);
-          if (exam) { setCookedSubject(exam.subject); break; }
+          if (exam) newlyDone.push(exam.subject);
         }
+      }
+      if (newlyDone.length > 0) {
+        setCookedQueue(q => [...q, ...newlyDone]);
       }
       prevDoneRef.current = nowDone;
     }, 1000);
     return () => clearInterval(id);
   }, [results]);
+
+  const cookedSubject = cookedQueue[0] ?? null;
+  function dismissCooked() { setCookedQueue(q => q.slice(1)); }
 
   function handleSearch(id?: string) {
     const sid = (id ?? query).trim();
@@ -524,7 +531,7 @@ export default function Home() {
       {cookedSubject && (
         <CookedCelebration
           subject={cookedSubject}
-          onDismiss={() => setCookedSubject(null)}
+          onDismiss={dismissCooked}
         />
       )}
       {/* Header */}
