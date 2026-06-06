@@ -472,7 +472,14 @@ export default function Home() {
   const prevDoneRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!results) { prevDoneRef.current = new Set(); setCookedQueue([]); return; }
+    if (!results) {
+      prevDoneRef.current = new Set();
+      setCookedQueue([]);
+      return;
+    }
+    // Seed with already-done exams so we don't celebrate past exams on load
+    prevDoneRef.current = new Set(results.filter(isExamDone).map(e => e.subject + e.day + e.time));
+
     const id = setInterval(() => {
       const nowDone = new Set(results.filter(isExamDone).map(e => e.subject + e.day + e.time));
       const prev = prevDoneRef.current;
